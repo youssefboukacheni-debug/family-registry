@@ -75,7 +75,7 @@ function getRelated(member, allMembers) {
         return;
       }
       if (m.fatherName && m.fatherName.toLowerCase().trim() === fn) {
-        related.push({ member: m, link: "Meme pere (" + member.fatherName + ")" });
+        related.push({ member: m, link: m.relation === 'Soeur' ? 'Votre soeur' : m.relation === 'Frere' ? 'Votre frere' : 'Votre frere/soeur' });
         return;
       }
     }
@@ -86,7 +86,7 @@ function getRelated(member, allMembers) {
         return;
       }
       if (m.motherName && m.motherName.toLowerCase().trim() === mn2) {
-        related.push({ member: m, link: "Meme mere (" + member.motherName + ")" });
+        related.push({ member: m, link: m.relation === 'Soeur' ? 'Votre soeur' : m.relation === 'Frere' ? 'Votre frere' : 'Votre frere/soeur' });
         return;
       }
     }

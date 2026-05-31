@@ -19,56 +19,92 @@ const DELETE_PASSWORD = "Delete2026";
 // Trouve tous les membres liés à un membre donné
 function getRelated(member, allMembers) {
   const related = [];
+  const memberName = member.name.toLowerCase().trim();
+
   allMembers.forEach(m => {
     if (m.id === member.id) return;
-    // Rattaché directement (parentId)
+    const mName = m.name.toLowerCase().trim();
+
+    // 1. Lien via relation déclarée + parentId
     if (m.parentId === member.id) {
-      related.push({ member: m, link: "Enfant enregistre" });
+      const rel = m.relation || "";
+      const epoux = ["Epoux","Epouse","Conjoint","Conjointe"].includes(rel);
+      const label = epoux
+        ? (rel === "Epouse" ? "Votre epouse" : "Votre epoux")
+        : m.relation ? m.relation + " enregistre(e)" : "Lien direct";
+      related.push({ member: m, link: label });
       return;
     }
     if (member.parentId && member.parentId === m.id) {
-      related.push({ member: m, link: "Parent enregistre" });
+      const rel = member.relation || "";
+      const epoux = ["Epoux","Epouse","Conjoint","Conjointe"].includes(rel);
+      const label = epoux
+        ? (rel === "Epouse" ? "Votre epouse" : "Votre epoux")
+        : member.relation ? member.relation + " de " + m.name : "Parent enregistre";
+      related.push({ member: m, link: label });
       return;
     }
-    // Meme parent (freres/soeurs)
+
+    // 2. Meme parent (freres/soeurs)
     if (member.parentId && m.parentId && member.parentId === m.parentId) {
-      related.push({ member: m, link: "Meme parent" });
+      related.push({ member: m, link: "Meme famille directe" });
       return;
     }
-    // Nom du pere ou de la mere correspond
-    const mn = member.name.toLowerCase();
-    if (m.fatherName && m.fatherName.toLowerCase() === mn) {
-      related.push({ member: m, link: "Vous etes le pere de " + m.name });
+
+    // 3. Nom du membre correspond au père/mère d'un autre
+    if (m.fatherName && m.fatherName.toLowerCase().trim() === memberName) {
+      const label = m.relation === "Fils" ? "Votre fils"
+        : m.relation === "Fille" ? "Votre fille"
+        : "Vous etes le pere de " + m.name;
+      related.push({ member: m, link: label });
       return;
     }
-    if (m.motherName && m.motherName.toLowerCase() === mn) {
-      related.push({ member: m, link: "Vous etes la mere de " + m.name });
+    if (m.motherName && m.motherName.toLowerCase().trim() === memberName) {
+      const label = m.relation === "Fils" ? "Votre fils"
+        : m.relation === "Fille" ? "Votre fille"
+        : "Vous etes la mere de " + m.name;
+      related.push({ member: m, link: label });
       return;
     }
-    // Son pere ou sa mere correspond a un autre membre
+
+    // 4. Père/mère du membre correspond à un autre membre
     if (member.fatherName) {
-      const fn = member.fatherName.toLowerCase();
-      if (m.name.toLowerCase() === fn) {
+      const fn = member.fatherName.toLowerCase().trim();
+      if (mName === fn) {
         related.push({ member: m, link: "Votre pere" });
         return;
       }
-      if (m.fatherName && m.fatherName.toLowerCase() === fn && m.id !== member.id) {
+      if (m.fatherName && m.fatherName.toLowerCase().trim() === fn) {
         related.push({ member: m, link: "Meme pere (" + member.fatherName + ")" });
         return;
       }
     }
     if (member.motherName) {
-      const mn2 = member.motherName.toLowerCase();
-      if (m.name.toLowerCase() === mn2) {
+      const mn2 = member.motherName.toLowerCase().trim();
+      if (mName === mn2) {
         related.push({ member: m, link: "Votre mere" });
         return;
       }
-      if (m.motherName && m.motherName.toLowerCase() === mn2 && m.id !== member.id) {
+      if (m.motherName && m.motherName.toLowerCase().trim() === mn2) {
         related.push({ member: m, link: "Meme mere (" + member.motherName + ")" });
         return;
       }
     }
+
+    // 5. Epoux/Epouse via relation déclarée (sans parentId)
+    const rel = m.relation || "";
+    if (["Epoux","Epouse"].includes(rel)) {
+      if (m.fatherName && m.fatherName.toLowerCase().trim() === memberName) {
+        related.push({ member: m, link: rel === "Epouse" ? "Votre epouse" : "Votre epoux" });
+        return;
+      }
+      if (m.motherName && m.motherName.toLowerCase().trim() === memberName) {
+        related.push({ member: m, link: rel === "Epouse" ? "Votre epouse" : "Votre epoux" });
+        return;
+      }
+    }
   });
+
   // Dédoublonnage
   const seen = new Set();
   return related.filter(r => { if (seen.has(r.member.id)) return false; seen.add(r.member.id); return true; });
@@ -398,4 +434,3 @@ export default function App() {
     </div>
   );
 }
-

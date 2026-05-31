@@ -138,6 +138,86 @@ function getRelated(member, allMembers) {
     }
   });
 
+  // 7. Grand-pere/Grand-mere — parent du pere ou de la mere
+  const myFatherName = (member.fatherName || "").toLowerCase().trim();
+  const myMotherName = (member.motherName || "").toLowerCase().trim();
+  allMembers.forEach(m => {
+    if (m.id === member.id) return;
+    if (related.find(r => r.member.id === m.id)) return;
+    const mName = m.name.toLowerCase().trim();
+    // m est le pere du pere de member
+    if (myFatherName) {
+      const fatherMember = allMembers.find(x => x.name.toLowerCase().trim() === myFatherName);
+      if (fatherMember) {
+        const ff = (fatherMember.fatherName || "").toLowerCase().trim();
+        const fm = (fatherMember.motherName || "").toLowerCase().trim();
+        if (ff && mName === ff) { related.push({ member: m, link: "Votre grand-pere" }); return; }
+        if (fm && mName === fm) { related.push({ member: m, link: "Votre grand-mere" }); return; }
+      }
+    }
+    // m est le pere de la mere de member
+    if (myMotherName) {
+      const motherMember = allMembers.find(x => x.name.toLowerCase().trim() === myMotherName);
+      if (motherMember) {
+        const mf = (motherMember.fatherName || "").toLowerCase().trim();
+        const mm = (motherMember.motherName || "").toLowerCase().trim();
+        if (mf && mName === mf) { related.push({ member: m, link: "Votre grand-pere" }); return; }
+        if (mm && mName === mm) { related.push({ member: m, link: "Votre grand-mere" }); return; }
+      }
+    }
+  });
+
+  // 8. Oncle/Tante — frere/soeur du pere ou de la mere
+  allMembers.forEach(m => {
+    if (m.id === member.id) return;
+    if (related.find(r => r.member.id === m.id)) return;
+    const mf = (m.fatherName || "").toLowerCase().trim();
+    const mm2 = (m.motherName || "").toLowerCase().trim();
+    // frere/soeur du pere: meme pere que le pere de member
+    if (myFatherName) {
+      const fatherMember = allMembers.find(x => x.name.toLowerCase().trim() === myFatherName);
+      if (fatherMember) {
+        const ff = (fatherMember.fatherName || "").toLowerCase().trim();
+        const fm = (fatherMember.motherName || "").toLowerCase().trim();
+        const isSibOfFather = (ff && mf && ff === mf) || (fm && mm2 && fm === mm2);
+        if (isSibOfFather && m.id !== fatherMember.id) {
+          const label = m.relation === "Soeur" ? "Votre tante" : m.relation === "Frere" ? "Votre oncle" : "Votre oncle/tante";
+          related.push({ member: m, link: label }); return;
+        }
+      }
+    }
+    // frere/soeur de la mere
+    if (myMotherName) {
+      const motherMember = allMembers.find(x => x.name.toLowerCase().trim() === myMotherName);
+      if (motherMember) {
+        const mff = (motherMember.fatherName || "").toLowerCase().trim();
+        const mfm = (motherMember.motherName || "").toLowerCase().trim();
+        const isSibOfMother = (mff && mf && mff === mf) || (mfm && mm2 && mfm === mm2);
+        if (isSibOfMother && m.id !== motherMember.id) {
+          const label = m.relation === "Soeur" ? "Votre tante" : m.relation === "Frere" ? "Votre oncle" : "Votre oncle/tante";
+          related.push({ member: m, link: label }); return;
+        }
+      }
+    }
+  });
+
+  // 9. Cousin/Cousine — enfant oncle/tante
+  const relatedCopy = [...related];
+  relatedCopy.forEach(rel2 => {
+    if (!['Votre oncle/tante','Votre tante','Votre oncle'].includes(rel2.link)) return;
+    const uncleName = rel2.member.name.toLowerCase().trim();
+    allMembers.forEach(child => {
+      if (child.id === member.id) return;
+      if (related.find(r => r.member.id === child.id)) return;
+      const cf = (child.fatherName || "").toLowerCase().trim();
+      const cm = (child.motherName || "").toLowerCase().trim();
+      if (cf === uncleName || cm === uncleName) {
+        const label = child.relation === "Fille" ? "Votre cousine" : child.relation === "Fils" ? "Votre cousin" : "Votre cousin/cousine";
+        related.push({ member: child, link: label });
+      }
+    });
+  });
+
   // Dedoublonnage
   const seen = new Set();
   return related.filter(r => { if (seen.has(r.member.id)) return false; seen.add(r.member.id); return true; });

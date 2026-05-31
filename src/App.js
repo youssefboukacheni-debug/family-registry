@@ -233,7 +233,9 @@ function TreeNode({ member, members, depth }) {
         <div style={{ fontWeight: 600, color: "#dce8ff" }}>{member.name}</div>
         <div style={{ color: "#6c8ebf", fontSize: 12 }}>{member.relation}{member.birthYear ? " - " + member.birthYear : ""}</div>
       </div>
-      {children.map(c => <TreeNode key={c.id} member={c} members={members} depth={depth + 1} />)}
+      {children
+        .sort((a, b) => (parseInt(a.birthYear)||9999) - (parseInt(b.birthYear)||9999))
+        .map(c => <TreeNode key={c.id} member={c} members={members} depth={depth + 1} />)}
     </div>
   );
 }
@@ -451,7 +453,14 @@ export default function App() {
         {view === "tree" && (
           <div style={{ background: "#0a0c1a", border: "1.5px solid " + S.border, borderRadius: 16, padding: 24 }}>
             <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: S.text }}>Arbre Genealogique</div>
-            {members.filter(m => !m.parentId || !members.find(p => p.id === m.parentId)).map(root => <TreeNode key={root.id} member={root} members={members} depth={0} />)}
+            {members
+              .filter(m => !m.parentId || !members.find(p => p.id === m.parentId))
+              .sort((a, b) => {
+                const ya = parseInt(a.birthYear) || 9999;
+                const yb = parseInt(b.birthYear) || 9999;
+                return ya - yb;
+              })
+              .map(root => <TreeNode key={root.id} member={root} members={members} depth={0} />)}
             {members.length === 0 && <div style={{ color: S.border, textAlign: "center", padding: "40px 0" }}>Ajoutez des membres d'abord</div>}
           </div>
         )}

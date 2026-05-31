@@ -91,7 +91,7 @@ function getRelated(member, allMembers) {
       }
     }
 
-    // 5. Epoux/Epouse via relation déclarée (sans parentId)
+    // 5. Epoux/Epouse via relation declaree (sans parentId)
     const rel = m.relation || "";
     if (["Epoux","Epouse"].includes(rel)) {
       if (m.fatherName && m.fatherName.toLowerCase().trim() === memberName) {
@@ -105,7 +105,40 @@ function getRelated(member, allMembers) {
     }
   });
 
-  // Dédoublonnage
+  // 6. Neveu/Niece - enfant d un frere/soeur (meme pere ou meme mere)
+  const myFather = (member.fatherName || "").toLowerCase().trim();
+  const myMother = (member.motherName || "").toLowerCase().trim();
+  const siblings = allMembers.filter(s => {
+    if (s.id === member.id) return false;
+    const sf = (s.fatherName || "").toLowerCase().trim();
+    const sm = (s.motherName || "").toLowerCase().trim();
+    return (myFather && sf && myFather === sf) || (myMother && sm && myMother === sm);
+  });
+  siblings.forEach(sibling => {
+    const sibName = sibling.name.toLowerCase().trim();
+    allMembers.forEach(child => {
+      if (child.id === member.id) return;
+      if (related.find(r => r.member.id === child.id)) return;
+      const cf = (child.fatherName || "").toLowerCase().trim();
+      const cm = (child.motherName || "").toLowerCase().trim();
+      if (cf === sibName || cm === sibName) {
+        const label = child.relation === "Fille" ? "Votre niece"
+          : child.relation === "Fils" ? "Votre neveu"
+          : child.relation === "Neveu" ? "Votre neveu"
+          : child.relation === "Niece" ? "Votre niece"
+          : "Votre neveu/niece";
+        related.push({ member: child, link: label });
+      }
+    });
+    if (!related.find(r => r.member.id === sibling.id)) {
+      const sibLabel = sibling.relation === "Soeur" ? "Votre soeur"
+        : sibling.relation === "Frere" ? "Votre frere"
+        : "Frere/Soeur";
+      related.push({ member: sibling, link: sibLabel });
+    }
+  });
+
+  // Dedoublonnage
   const seen = new Set();
   return related.filter(r => { if (seen.has(r.member.id)) return false; seen.add(r.member.id); return true; });
 }
